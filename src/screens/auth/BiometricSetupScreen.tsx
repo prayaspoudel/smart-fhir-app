@@ -11,16 +11,18 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { useAppSelector } from '../../store';
+import { useAppSelector, useAppDispatch } from '../../store';
 import { selectIsDarkMode } from '../../store/slices/uiSlice';
+import { loginSuccess } from '../../store/slices/authSlice';
 import { useBiometric } from '../../hooks';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type BiometricSetupNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'BiometricSetup'>;
 
 const BiometricSetupScreen: React.FC = () => {
-  const navigation = useNavigation<BiometricSetupNavigationProp>();
+  const _navigation = useNavigation<BiometricSetupNavigationProp>();
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
 
   const isDarkMode = useAppSelector(selectIsDarkMode);
   const { capabilities, authenticate, error: biometricError } = useBiometric();
@@ -53,6 +55,44 @@ const BiometricSetupScreen: React.FC = () => {
     }
   }, [biometryType]);
 
+  // Helper to complete authentication
+  const completeAuthentication = useCallback(() => {
+    dispatch(
+      loginSuccess({
+        patient: {
+          resourceType: 'Patient',
+          id: 'patient_123',
+          name: [{ family: 'Doe', given: ['John'] }],
+        },
+        tokens: {
+          accessToken: 'access_token_123',
+          refreshToken: 'refresh_token_123',
+          accessTokenExpiresAt: Date.now() + 3600000,
+          refreshTokenExpiresAt: Date.now() + 86400000,
+          tokenType: 'Bearer',
+          idToken: undefined,
+        },
+        session: {
+          id: 'session_123',
+          userId: 'patient_123',
+          createdAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+          deviceInfo: {
+            deviceId: 'device_123',
+            deviceName: 'Mobile Device',
+            platform: 'ios',
+            osVersion: '17.0',
+            appVersion: '1.0.0',
+          },
+          isActive: true,
+          isCurrent: true,
+        },
+        providerId: 'default',
+      })
+    );
+  }, [dispatch]);
+
   const handleEnableBiometric = useCallback(async () => {
     if (!isAvailable) {
       Alert.alert(
@@ -77,10 +117,8 @@ const BiometricSetupScreen: React.FC = () => {
         {
           text: 'Continue',
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Main' as never }],
-            });
+            // Complete authentication - RootNavigator will automatically show Main
+            completeAuthentication();
           },
         },
       ]);
@@ -89,7 +127,7 @@ const BiometricSetupScreen: React.FC = () => {
     } finally {
       setIsEnabling(false);
     }
-  }, [isAvailable, authenticate, biometricError, navigation, getBiometricName]);
+  }, [isAvailable, authenticate, biometricError, getBiometricName, completeAuthentication]);
 
   const handleSkip = useCallback(() => {
     Alert.alert('Skip Biometric Setup?', 'You can enable biometric login later in Settings.', [
@@ -97,14 +135,12 @@ const BiometricSetupScreen: React.FC = () => {
       {
         text: 'Skip',
         onPress: () => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Main' as never }],
-          });
+          // Complete authentication - RootNavigator will automatically show Main
+          completeAuthentication();
         },
       },
     ]);
-  }, [navigation]);
+  }, [completeAuthentication]);
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? '#111827' : '#F9FAFB' }]}>

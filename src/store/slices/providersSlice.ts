@@ -7,7 +7,7 @@
  * - Active provider selection
  */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { Provider } from '../../domain/entities/Provider';
 
 // Provider with extra UI status
@@ -174,11 +174,17 @@ export default providersSlice.reducer;
 export const selectAllProviders = (state: { providers: ProvidersSliceState }) =>
   state.providers.providers;
 
-export const selectConnectedProviders = (state: { providers: ProvidersSliceState }) =>
-  state.providers.providers.filter(p => p.connectionStatus === 'connected');
+export const selectConnectedProviders = createSelector([selectAllProviders], providers =>
+  providers.filter(p => p.connectionStatus === 'connected')
+);
 
-export const selectActiveProvider = (state: { providers: ProvidersSliceState }) =>
-  state.providers.providers.find(p => p.id === state.providers.activeProviderId);
+export const selectActiveProvider = createSelector(
+  [
+    selectAllProviders,
+    (state: { providers: ProvidersSliceState }) => state.providers.activeProviderId,
+  ],
+  (providers, activeProviderId) => providers.find(p => p.id === activeProviderId)
+);
 
 export const selectProvidersLoading = (state: { providers: ProvidersSliceState }) =>
   state.providers.isLoading;
@@ -189,14 +195,13 @@ export const selectProvidersSyncing = (state: { providers: ProvidersSliceState }
 export const selectProvidersError = (state: { providers: ProvidersSliceState }) =>
   state.providers.error;
 
-export const selectFilteredProviders = (state: { providers: ProvidersSliceState }) => {
-  let filtered = state.providers.providers;
-
-  // Apply search filter
-  if (state.providers.searchQuery) {
-    const query = state.providers.searchQuery.toLowerCase();
-    filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+export const selectFilteredProviders = createSelector(
+  [selectAllProviders, (state: { providers: ProvidersSliceState }) => state.providers.searchQuery],
+  (providers, searchQuery) => {
+    if (!searchQuery) {
+      return providers;
+    }
+    const query = searchQuery.toLowerCase();
+    return providers.filter(p => p.name.toLowerCase().includes(query));
   }
-
-  return filtered;
-};
+);

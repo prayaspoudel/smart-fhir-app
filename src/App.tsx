@@ -18,12 +18,14 @@ import { LogBox, AppState, AppStateStatus } from 'react-native';
 import { Provider } from 'react-redux';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { store } from './store';
 import { queryClient } from './query/queryClient';
 import RootNavigator from './navigation/RootNavigator';
 import { setAppState } from './store/slices/uiSlice';
 import { Logger } from './utils/logger';
+import { SnackbarProvider } from './context/SnackbarContext';
 
 // Ignore certain warnings in development
 if (__DEV__) {
@@ -58,11 +60,15 @@ const App: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <RootNavigator />
-        </QueryClientProvider>
-      </Provider>
+      <SafeAreaProvider>
+        <Provider store={store}>
+          <QueryClientProvider client={queryClient}>
+            <SnackbarProvider>
+              <RootNavigator />
+            </SnackbarProvider>
+          </QueryClientProvider>
+        </Provider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 };

@@ -23,6 +23,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { useAppSelector, useAppDispatch } from '../../store';
 import { selectIsDarkMode } from '../../store/slices/uiSlice';
+import { loginSuccess } from '../../store/slices/authSlice';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type TwoFactorNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'TwoFactorAuth'>;
@@ -32,9 +33,9 @@ const CODE_LENGTH = 6;
 
 const TwoFactorAuthScreen: React.FC = () => {
   const navigation = useNavigation<TwoFactorNavigationProp>();
-  const _route = useRoute<TwoFactorRouteProp>();
+  const route = useRoute<TwoFactorRouteProp>();
   const insets = useSafeAreaInsets();
-  const _dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
   const isDarkMode = useAppSelector(selectIsDarkMode);
 
@@ -112,17 +113,48 @@ const TwoFactorAuthScreen: React.FC = () => {
         return;
       }
 
-      // Navigate to main app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' as never }],
-      });
+      // Complete authentication by dispatching loginSuccess
+      // This will update the auth state and RootNavigator will automatically show Main
+      dispatch(
+        loginSuccess({
+          patient: {
+            resourceType: 'Patient',
+            id: route.params?.patientId || 'patient_123',
+            name: [{ family: 'Doe', given: ['John'] }],
+          },
+          tokens: {
+            accessToken: 'access_token_123',
+            refreshToken: 'refresh_token_123',
+            accessTokenExpiresAt: Date.now() + 3600000,
+            refreshTokenExpiresAt: Date.now() + 86400000,
+            tokenType: 'Bearer',
+            idToken: undefined,
+          },
+          session: {
+            id: 'session_123',
+            userId: route.params?.patientId || 'patient_123',
+            createdAt: new Date().toISOString(),
+            lastActivityAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+            deviceInfo: {
+              deviceId: 'device_123',
+              deviceName: 'Mobile Device',
+              platform: 'ios',
+              osVersion: '17.0',
+              appVersion: '1.0.0',
+            },
+            isActive: true,
+            isCurrent: true,
+          },
+          providerId: 'default',
+        })
+      );
     } catch (err) {
       setError('Verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
     }
-  }, [code, navigation]);
+  }, [code, dispatch, route.params?.patientId]);
 
   const handleResendCode = useCallback(() => {
     if (resendTimer > 0) return;

@@ -19,7 +19,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -37,12 +36,14 @@ import {
   selectBiometricEnabled,
 } from '../../store/slices/authSlice';
 import { selectIsDarkMode } from '../../store/slices/uiSlice';
+import { useSnackbar } from '../../context/SnackbarContext';
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<AuthStackScreenProps<'Login'>['navigation']>();
   const route = useRoute<AuthStackScreenProps<'Login'>['route']>();
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
+  const { showError, showInfo } = useSnackbar();
 
   const isLoading = useAppSelector(selectAuthLoading);
   const authError = useAppSelector(selectAuthError);
@@ -56,7 +57,7 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter your email and password');
+      showError('Please enter your email and password');
       return;
     }
 
@@ -68,8 +69,9 @@ const LoginScreen: React.FC = () => {
       await new Promise<void>(resolve => setTimeout(() => resolve(), 1500));
 
       // Simulated response - in real app, this comes from the server
+      // Always require 2FA for security (in production, this would be based on user settings)
       const response = {
-        requires2FA: Math.random() > 0.5,
+        requires2FA: true,
         tempToken: 'temp_token_123',
         patientId: 'patient_123',
       };
@@ -124,8 +126,8 @@ const LoginScreen: React.FC = () => {
 
   const handleBiometricLogin = useCallback(async () => {
     // In production, use react-native-biometrics
-    Alert.alert('Biometric', 'Biometric authentication would be triggered here');
-  }, []);
+    showInfo('Biometric authentication would be triggered here');
+  }, [showInfo]);
 
   const handleSMARTLogin = useCallback(() => {
     navigation.navigate('ProviderSelect');

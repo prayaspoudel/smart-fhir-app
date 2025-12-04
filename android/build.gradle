@@ -6,7 +6,7 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "26.1.10909125"
         kotlinVersion = "1.9.24"
-        androidGradleVersion = "8.6.0"
+        androidGradleVersion = "8.8.0"
         reactNativeVersion = "0.73.11"
         reactNative = "0.73.11"
     }

@@ -7,13 +7,12 @@
  * - Modal screens
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { StatusBar, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { RootStackParamList, linking } from './types';
+import { RootStackParamList } from './types';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
 import SettingsNavigator from './SettingsNavigator';
@@ -65,6 +64,58 @@ const RootNavigator: React.FC = () => {
   const isDarkMode = useAppSelector(selectIsDarkMode);
 
   const [isReady, setIsReady] = useState(false);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+  // Create dynamic linking configuration based on auth state
+  // Only enable linking after navigation is ready to prevent RESET errors
+  const linking = useMemo(
+    () =>
+      isNavigationReady
+        ? {
+            prefixes: ['smartfhir://', 'https://smartfhir.app', 'https://*.smartfhir.app'],
+            config: {
+              screens: {
+                // Only include screens that are currently available
+                ...(isAuthenticated
+                  ? {
+                      Main: {
+                        screens: {
+                          Dashboard: 'dashboard',
+                          Records: {
+                            screens: {
+                              RecordsList: 'records',
+                              Vitals: 'vitals',
+                              LabResults: 'labs',
+                              Medications: 'medications',
+                              Encounters: 'encounters',
+                            },
+                          },
+                          Providers: {
+                            screens: {
+                              ProvidersList: 'providers',
+                              ProviderDetail: 'provider/:providerId',
+                            },
+                          },
+                        },
+                      },
+                    }
+                  : {
+                      Auth: {
+                        screens: {
+                          SMARTLaunch: 'launch',
+                          Login: 'login',
+                        },
+                      },
+                    }),
+                // Modal screens are always available
+                RecordDetailModal: 'record/:resourceType/:resourceId',
+                ConsentModal: 'consent/:consentId',
+              },
+            },
+          }
+        : undefined,
+    [isAuthenticated, isNavigationReady]
+  );
 
   // Initialize services on mount
   useEffect(() => {
@@ -93,7 +144,7 @@ const RootNavigator: React.FC = () => {
   }
 
   return (
-    <SafeAreaProvider>
+    <>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={isDarkMode ? '#111827' : '#F9FAFB'}
@@ -102,6 +153,9 @@ const RootNavigator: React.FC = () => {
         theme={navigationTheme}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         linking={linking as any}
+        onReady={() => {
+          setIsNavigationReady(true);
+        }}
         onStateChange={state => {
           // Could track screen views for analytics
           if (__DEV__) {
@@ -177,7 +231,7 @@ const RootNavigator: React.FC = () => {
           </Stack.Group>
         </Stack.Navigator>
       </NavigationContainer>
-    </SafeAreaProvider>
+    </>
   );
 };
 
