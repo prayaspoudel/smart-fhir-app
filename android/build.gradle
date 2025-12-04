@@ -7,6 +7,8 @@ buildscript {
         ndkVersion = "26.1.10909125"
         kotlinVersion = "1.9.24"
         androidGradleVersion = "8.6.0"
+        reactNativeVersion = "0.73.11"
+        reactNative = "0.73.11"
     }
     repositories {
         google()
@@ -25,8 +27,9 @@ allprojects {
     configurations.all {
         resolutionStrategy {
             eachDependency { details ->
-                if (details.requested.group == 'com.facebook.react' && details.requested.name == 'react-native') {
-                    details.useVersion rootProject.ext.has('reactNativeVersion') ? rootProject.ext.reactNativeVersion : '+'
+                if (details.requested.group == 'com.facebook.react' && 
+                    (details.requested.name == 'react-native' || details.requested.name == 'react-android')) {
+                    details.useVersion "0.73.11"
                 }
             }
         }
